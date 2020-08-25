@@ -12,6 +12,9 @@ import ARKit
 
 class ViewController: UIViewController, ARSCNViewDelegate {
     
+    
+    var diceArray = [SCNNode]()
+    
     @IBOutlet var sceneView: ARSCNView!
     
     override func viewDidLoad() {
@@ -40,14 +43,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         
         sceneView.autoenablesDefaultLighting = true
         
-        // Create a new scene
-        //        let diceScene = SCNScene(named: "art.scnassets/diceCollada copy.scn")!
-        //
-        //        if let diceNode = diceScene.rootNode.childNode(withName: "Dice", recursively: true) {
-        //
-        //        diceNode.position = SCNVector3(0, 0, -0.1)
-        //
-        //        sceneView.scene.rootNode.addChildNode(diceNode)
         
     }
     
@@ -70,6 +65,77 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.session.pause()
     }
     
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let touch = touches.first {
+            
+            let touchLocation = touch.location(in: sceneView)
+            
+            let results = sceneView.hitTest(touchLocation, types: .existingPlaneUsingExtent)
+            
+            
+            if let hitresult = results.first {
+                
+
+                let diceScene = SCNScene(named: "art.scnassets/diceCollada copy.scn")!
+                
+                if let diceNode = diceScene.rootNode.childNode(withName: "Dice", recursively: true) {
+                    
+                    diceNode.position = SCNVector3(
+                        hitresult.worldTransform.columns.3.x,
+                        hitresult.worldTransform.columns.3.y + diceNode.boundingSphere.radius,
+                        hitresult.worldTransform.columns.3.z)
+                    
+                    diceArray.append(diceNode)
+                    
+                    sceneView.scene.rootNode.addChildNode(diceNode)
+                    
+                    roll(dice: diceNode)
+                    
+                }
+                
+                
+            }
+            
+            
+        }
+        
+    }
+    
+    func rollAll() {
+        if !diceArray.isEmpty {
+            
+            for dice in diceArray {
+
+                roll(dice: dice)
+                
+            }
+        }
+    }
+    
+    func roll(dice: SCNNode) {
+        
+        let randomX = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
+        
+        let randomZ = Float(arc4random_uniform(4) + 1) * (Float.pi/2)
+        
+        dice.runAction(SCNAction.rotateBy(
+            x: CGFloat(Float(randomX * 5)),
+            y: 0,
+            z: CGFloat(Float(randomZ * 5)),
+            duration: 0.5
+        ))
+    }
+    
+    
+    @IBAction func rollAgain(_ sender: UIBarButtonItem) {
+        
+        rollAll()
+    }
+    
+    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        rollAll()
+    }
+    
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         if anchor is ARPlaneAnchor {
             
@@ -81,7 +147,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             
             planeNode.position = SCNVector3(planeAnchor.center.x, 0, planeAnchor.center.z)
             
-             planeNode.transform = SCNMatrix4MakeRotation(-Float.pi/2, 1, 0, 0)
+            planeNode.transform = SCNMatrix4MakeRotation(-Float.pi/2, 1, 0, 0)
             
             let gridMaterial = SCNMaterial()
             
@@ -92,8 +158,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             planeNode.geometry = plane
             
             node.addChildNode(planeNode)
-
-
+            
+            
         } else {
             return
         }
